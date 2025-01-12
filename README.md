@@ -1,0 +1,1 @@
+VIN data validation examples.
