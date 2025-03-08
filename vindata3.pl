@@ -6,6 +6,9 @@ use warnings;
 sub isValidVIN {
     my ($vin) = @_;
     
+    # Normalize to uppercase
+    $vin = uc($vin);
+
     # Debugging: Output VIN being validated
     print "Validating VIN: $vin\n";
 
@@ -21,13 +24,43 @@ sub isValidVIN {
         return 0;
     }
 
+    # Validate the check digit (9th character)
+    if (!validateCheckDigit($vin)) {
+        print "  Invalid check digit for VIN: $vin\n";
+        return 0;
+    }
+
     return 1;
+}
+
+# Validate the VIN check digit
+sub validateCheckDigit {
+    my ($vin) = @_;
+    my %transliteration = (
+        A => 1, B => 2, C => 3, D => 4, E => 5, F => 6, G => 7, H => 8,
+        J => 1, K => 2, L => 3, M => 4, N => 5, P => 7, R => 9, S => 2,
+        T => 3, U => 4, V => 5, W => 6, X => 7, Y => 8, Z => 9,
+    );
+
+    my @weights = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2);
+    my $sum = 0;
+
+    for my $i (0..16) {
+        my $char = substr($vin, $i, 1);
+        my $value = ($char =~ /\d/) ? $char : $transliteration{$char};
+        $sum += $value * $weights[$i];
+    }
+
+    my $check_digit = substr($vin, 8, 1);
+    my $computed_check_digit = ($sum % 11 == 10) ? 'X' : ($sum % 11);
+
+    return $check_digit eq $computed_check_digit;
 }
 
 # Extract potential VINs from a given string.
 sub extractVINs {
     my ($text) = @_;
-    my @matches = ($text =~ /\b[A-Za-z0-9]{17,}\b/g);
+    my @matches = ($text =~ /\b[A-Za-z0-9]{17}\b/g);
 
     # Debugging: Output extracted VINs
     print "Extracted potential VINs: ", join(', ', @matches), "\n";
@@ -70,4 +103,3 @@ if (@invalidVINs) {
 } else {
     print "  None\n";
 }
-
